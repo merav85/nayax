@@ -1,0 +1,2 @@
+# nayax
+Nayax Home Asignment
