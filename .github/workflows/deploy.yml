@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Terraform Repository
         uses: actions/checkout@v3
         with:
-          repository: https://github.com/merav85/nayax
+          repository: merav85/nayax
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
