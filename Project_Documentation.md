@@ -1,83 +1,65 @@
-# Project Documentation: AWS EKS CI/CD Pipeline
+# Project Documentation: AWS EKS with Terraform and ArgoCD CI/CD
 
 ## Overview
-This project automates the deployment of a Kubernetes-based application using AWS EKS, Terraform, GitHub Actions, and ArgoCD.
+This project sets up an **Amazon EKS** (Elastic Kubernetes Service) cluster using **Terraform** and automates application deployment using **ArgoCD**. Two separate **Git repositories** are used to maintain infrastructure and application configurations:
+1. **Terraform Repository (`nayax`)** - Manages EKS cluster creation.
+2. **ArgoCD Repository (`nayax_argocd`)** - Manages application deployment across Dev, Stage, and Prod environments.
 
-## Components - Git Repos
-- **nayax/**: Terraform scripts to provision an AWS EKS cluster.
-- **nayax_argocd/**: Kubernetes manifests and ArgoCD configurations.
+## Infrastructure Setup
+- **Terraform** provisions an EKS cluster in **`eu-west-1`**.
+- Uses IAM roles for cluster and node permissions.
+- Creates Kubernetes namespaces: **dev, stage, prod**.
+- Stores infrastructure as code in **`nayax`** repository.
+- Includes **scaling configuration** for node groups to ensure resource availability.
 
-## Deployment Steps
-1. Deploy the infrastructure using Terraform.
-2. Push Kubernetes manifests to the `argocd-repo`.
-3. GitHub Actions will automatically trigger the deployment.
-4. Monitor the deployment using ArgoCD.
+## CI/CD Pipeline Setup
+The pipeline consists of two workflows:
 
-## Best Practices
-- Use GitHub Secrets for sensitive data.
-- Maintain Terraform state remotely.
-- Implement RBAC for Kubernetes security.
+### **1. Terraform CI/CD Workflow** (Infrastructure Setup)
+Located in the `nayax` repository, this pipeline:
+- Runs on **push** and **pull requests** to `main`.
+- **Initializes, validates, plans, and applies** Terraform changes.
+- Uses **GitHub Secrets** to manage AWS credentials securely.
+- Includes a **security scan** with `tflint`.
 
-# Project Documentation: AWS EKS CI/CD Pipeline
+#### Steps:
+1. **Checkout Terraform Repository**
+2. **Setup Terraform**
+3. **Configure AWS Credentials** (via GitHub Secrets)
+4. **Initialize Terraform**
+5. **Validate Terraform Code**
+6. **Plan Terraform Execution**
+7. **Apply Terraform Changes** *(only on `main` branch)*
+8. **Run Security Scan** (Terraform Validation & Linting)
 
-## Overview
-This project automates the deployment of a Kubernetes-based application using AWS EKS, Terraform, GitHub Actions, and ArgoCD. The system supports multiple environments (Dev, Stage, Prod) as separate Kubernetes namespaces.
+### **2. ArgoCD Deployment Workflow** (Application Deployment)
+Located in the `nayax_argocd` repository, this pipeline:
+- Runs on **push** to `main`.
+- Deploys application updates across **Dev, Stage, and Prod** using ArgoCD.
+- Ensures **progressive deployment** from **Dev > Stage > Prod**.
 
-## Components
-- Infrastructure Repository (terraform-repo): Contains Terraform scripts to provision an AWS EKS cluster.
-- ArgoCD Repository (argocd-repo): Hosts Kubernetes manifests and ArgoCD configurations for deploying applications across Dev, Stage, and Prod.
+#### Steps:
+1. **Checkout ArgoCD Repository**
+2. **Install ArgoCD CLI**
+3. **Sync Application Deployment to Dev**
+4. **Sync Application Deployment to Stage**
+5. **Sync Application Deployment to Prod**
 
-## CI/CD Pipeline 
-
-## Overview
-The GitHub Actions pipeline consists of three main jobs:
-1. Provision EKS Cluster (Terraform)
-    - Runs Terraform to create/update the EKS cluster.
-    - Uses OpenID Connect (OIDC) for authentication (no credentials in SCM).
-2. Deploy to EKS (ArgoCD)
-    -Updates Kubernetes manifests stored in the argocd-repo.
-    -ArgoCD syncs the deployment to the EKS cluster.
-3. Run Security & Availability Tests
-    - Ensures application is running and accessible.
-    - Runs security scans on Kubernetes resources.
+## Security Considerations
+- **GitHub Secrets**: Store AWS access credentials securely.
+- **Role-based Access**: Uses IAM roles to limit permissions.
+- **State Management**: Terraform state should be stored securely (e.g., in an S3 bucket with DynamoDB for locking).
 
 ## How to Use the Pipeline
+### **1. Deploy Infrastructure with Terraform**
+- Push changes to `nayax` repository.
+- The GitHub Actions pipeline will automatically create/update the EKS cluster.
 
-## Prerequisites
-- AWS account with IAM role permissions.
-- GitHub repository secrets configured:
-    * AWS_ROLE_ARN: IAM role for OIDC authentication.
-    * ECR_REPO: Amazon ECR repository URL.
+### **2. Deploy Application with ArgoCD**
+- Push application changes to `nayax_argocd` repository.
+- The GitHub Actions pipeline will sync the application to **Dev**, then **Stage**, and finally **Prod**.
 
-## Deployment Steps
-1. Setup Terraform State
-    - Navigate to terraform-repo/
-    - Run:
-        * terraform init
-        * terraform apply -auto-approve     
-2. Push Kubernetes Manifests
-    - Navigate to argocd-repo/
-    - Commit and push changes to the main branch.
-3. CI/CD Execution
-    - GitHub Actions triggers automatically.
-    - The pipeline provisions infrastructure and deploys applications via ArgoCD.
-    - Runs automated tests for security and availability.
-4. Monitor Deployment
-    - Use ArgoCD UI or CLI to track deployment status:
-        * kubectl get pods -n dev  # Check application status in Dev environment
-        * Verify test results in GitHub Actions logs.
-
-## Best Practices
-    - Use GitHub Secrets to store sensitive data.
-    - Maintain Terraform state remotely (S3 + DynamoDB).
-    - Implement role-based access control (RBAC) for Kubernetes security.
-
-## Troubleshooting
-    - Terraform Errors: Ensure AWS IAM permissions are correctly configured.
-    - Pipeline Fails at Deployment: Check ArgoCD logs and sync status.
-    - Application Not Accessible: Verify Kubernetes service and ingress configurations.
-    - Test Failures: Check logs for security vulnerabilities or downtime alerts.
-
-## Future Improvements
-    - Implement monitoring with Prometheus & Grafana.
-    - Add automated rollback for failed deployments.    
+## Next Steps
+- Implement **monitoring** (e.g., Prometheus, Grafana) for cluster health.
+- Automate rollback in case of deployment failures.
+- Enhance security with **OIDC authentication** for EKS.
