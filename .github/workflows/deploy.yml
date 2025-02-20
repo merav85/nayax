@@ -1,17 +1,25 @@
-name: CI/CD Pipeline
+name: Terraform CI/CD
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  terraform:
+    name: Terraform Apply
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout Terraform Repository
         uses: actions/checkout@v3
+        with:
+          repository: your-org/terraform-eks
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -20,21 +28,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
-
-      - name: Terraform Init
+      - name: Initialize Terraform
         run: terraform init
 
-      - name: Terraform Apply
+      - name: Validate Terraform
+        run: terraform validate
+
+      - name: Plan Terraform Changes
+        run: terraform plan
+
+      - name: Apply Terraform Changes
+        if: github.ref == 'refs/heads/main'
         run: terraform apply -auto-approve
 
-      - name: Deploy to ArgoCD
-        run: |
-          kubectl apply -f argocd/application.yaml
-          kubectl apply -f argocd/deployment.yaml
-
-      - name: Run Security & Availability Tests
-        run: |
-          kubectl get pods -n dev
-          kubectl get svc -n dev
+      - name: Run Security Scan
+        run: terraform validate && tflint
