@@ -29,14 +29,15 @@ resource "aws_vpc" "eks_vpc" {
   enable_dns_hostnames = true
 }
 
-# Define multiple subnets in different AZs
+# Define multiple subnets in different AZs with unique CIDR blocks
 resource "aws_subnet" "eks_subnets" {
   count                   = 2
   vpc_id                  = aws_vpc.eks_vpc.id
-  cidr_block              = "10.0.${count.index + 1}.0/24"
+  cidr_block              = cidrsubnet(var.vpc_cidr, 8, count.index) # Generates unique subnets
   availability_zone       = element(["eu-west-1a", "eu-west-1b"], count.index)
   map_public_ip_on_launch = true
 }
+
 
 # EKS Cluster with two subnets in different AZs
 resource "aws_eks_cluster" "eks_cluster" {
