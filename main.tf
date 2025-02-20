@@ -10,8 +10,3 @@ resource "aws_eks_cluster" "eks" {
     subnet_ids = var.subnet_ids
   }
 }
-
-variable "cluster_name" {}
-variable "subnet_ids" {
-  type = list(string)
-}
