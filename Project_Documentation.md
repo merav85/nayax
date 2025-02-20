@@ -58,8 +58,3 @@ Located in the `nayax_argocd` repository, this pipeline:
 ### **2. Deploy Application with ArgoCD**
 - Push application changes to `nayax_argocd` repository.
 - The GitHub Actions pipeline will sync the application to **Dev**, then **Stage**, and finally **Prod**.
-
-## Next Steps
-- Implement **monitoring** (e.g., Prometheus, Grafana) for cluster health.
-- Automate rollback in case of deployment failures.
-- Enhance security with **OIDC authentication** for EKS.
