@@ -29,17 +29,21 @@ resource "aws_vpc" "eks_vpc" {
   enable_dns_hostnames = true
 }
 
-resource "aws_subnet" "eks_subnet" {
+# Define multiple subnets in different AZs
+resource "aws_subnet" "eks_subnets" {
+  count                   = 2
   vpc_id                  = aws_vpc.eks_vpc.id
-  cidr_block              = var.subnet_cidr
+  cidr_block              = "10.0.${count.index + 1}.0/24"
+  availability_zone       = element(["eu-west-1a", "eu-west-1b"], count.index)
   map_public_ip_on_launch = true
 }
 
+# EKS Cluster with two subnets in different AZs
 resource "aws_eks_cluster" "eks_cluster" {
   name     = var.eks_cluster_name
   role_arn = aws_iam_role.eks_role.arn
   vpc_config {
-    subnet_ids = [aws_subnet.eks_subnet.id]
+    subnet_ids = aws_subnet.eks_subnets[*].id
   }
 }
 
